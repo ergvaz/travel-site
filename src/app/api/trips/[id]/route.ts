@@ -1,8 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { supabaseAdmin } from '@/lib/supabase-admin'
+import { getSupabaseAdmin } from '@/lib/supabase-admin'
 
 export async function GET(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const { id } = await params
+  const supabaseAdmin = getSupabaseAdmin()
   const { data, error } = await supabaseAdmin
     .from('trips')
     .select('*, profiles(username, full_name, avatar_url)')
@@ -20,6 +21,7 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
 export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const { id } = await params
   const updates = await req.json()
+  const supabaseAdmin = getSupabaseAdmin()
   const { data, error } = await supabaseAdmin
     .from('trips')
     .update({ ...updates, updated_at: new Date().toISOString() })
@@ -33,6 +35,7 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
 
 export async function DELETE(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const { id } = await params
+  const supabaseAdmin = getSupabaseAdmin()
   const { error } = await supabaseAdmin.from('trips').delete().eq('id', id)
   if (error) return NextResponse.json({ error: 'Failed to delete trip' }, { status: 500 })
   return NextResponse.json({ success: true })

@@ -1,9 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { supabaseAdmin } from '@/lib/supabase-admin'
+import { getSupabaseAdmin } from '@/lib/supabase-admin'
 
 export async function POST(req: NextRequest) {
   try {
     const { tripData, formData, userId } = await req.json()
+    const supabaseAdmin = getSupabaseAdmin()
 
     const { data, error } = await supabaseAdmin
       .from('trips')
@@ -45,6 +46,7 @@ export async function GET(req: NextRequest) {
   const offset = parseInt(searchParams.get('offset') || '0')
 
   try {
+    const supabaseAdmin = getSupabaseAdmin()
     let query = supabaseAdmin
       .from('trips')
       .select('*, profiles(username, full_name, avatar_url)')
@@ -67,6 +69,7 @@ export async function GET(req: NextRequest) {
 }
 
 async function checkAndAwardAchievements(userId: string) {
+  const supabaseAdmin = getSupabaseAdmin()
   const { count } = await supabaseAdmin
     .from('trips')
     .select('*', { count: 'exact', head: true })
