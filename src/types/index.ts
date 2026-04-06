@@ -3,6 +3,7 @@ export interface TripFormData {
   budget: number
   startDate?: string
   days: number
+  people: number
   travelMode: 'fly' | 'drive'
   startingAddress?: string
   preferences: string[]

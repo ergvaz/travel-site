@@ -1,7 +1,7 @@
 'use client'
 
-import { useState, useEffect } from 'react'
-import { useRouter } from 'next/navigation'
+import { useState, useEffect, Suspense } from 'react'
+import { useRouter, useSearchParams } from 'next/navigation'
 import ForestBackground from '@/components/ForestBackground'
 import Navbar from '@/components/Navbar'
 import TripPlannerForm from '@/components/planner/TripPlannerForm'
@@ -13,8 +13,10 @@ import type { User } from '@supabase/supabase-js'
 
 type Phase = 'form' | 'loading' | 'result'
 
-export default function PlanPage() {
+function PlanPageInner() {
   const router = useRouter()
+  const searchParams = useSearchParams()
+  const prefillDestination = searchParams.get('destination') || ''
   const [phase, setPhase] = useState<Phase>('form')
   const [trip, setTrip] = useState<GeneratedTrip | null>(null)
   const [formData, setFormData] = useState<TripFormData | null>(null)
@@ -140,7 +142,7 @@ export default function PlanPage() {
                 {error}
               </div>
             )}
-            <TripPlannerForm onSubmit={handleSubmit} />
+            <TripPlannerForm onSubmit={handleSubmit} prefillDestination={prefillDestination} />
           </div>
         )}
 
@@ -194,5 +196,13 @@ export default function PlanPage() {
         )}
       </div>
     </div>
+  )
+}
+
+export default function PlanPage() {
+  return (
+    <Suspense>
+      <PlanPageInner />
+    </Suspense>
   )
 }

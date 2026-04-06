@@ -2,8 +2,6 @@ import { NextRequest, NextResponse } from 'next/server'
 import { Resend } from 'resend'
 import { GeneratedTrip } from '@/types'
 
-const resend = new Resend(process.env.RESEND_API_KEY)
-
 function generateItineraryText(trip: GeneratedTrip): string {
   const lines: string[] = [
     `✈️ ${trip.title}`,
@@ -77,6 +75,7 @@ export async function POST(req: NextRequest) {
     }
 
     if (type === 'email' && email) {
+      const resend = new Resend(process.env.RESEND_API_KEY)
       const itineraryText = generateItineraryText(trip)
 
       await resend.emails.send({

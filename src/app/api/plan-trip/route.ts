@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from 'next/server'
 import Anthropic from '@anthropic-ai/sdk'
 import { TripFormData, GeneratedTrip } from '@/types'
 
+export const maxDuration = 120
+
 const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY })
 
 async function researchDestination(destination: string, travelDate: string): Promise<string> {
@@ -75,7 +77,7 @@ async function getPlacesFromFoursquare(destination: string): Promise<string> {
 export async function POST(req: NextRequest) {
   try {
     const formData: TripFormData = await req.json()
-    const { destination, budget, days, travelMode, startingAddress, preferences, specialRequests, startDate } = formData
+    const { destination, budget, days, people = 2, travelMode, startingAddress, preferences, specialRequests, startDate } = formData
 
     const travelMonth = startDate
       ? new Date(startDate).toLocaleString('en-US', { month: 'long' })
@@ -88,7 +90,8 @@ export async function POST(req: NextRequest) {
 
     const systemPrompt = `You are an expert luxury travel planner with deep knowledge of global destinations, flight pricing, hotel rates, and local culture. You create detailed, accurate, and genuinely useful travel plans. You always consider seasonality, current travel conditions, and real-world logistics. You respond ONLY with valid JSON.`
 
-    const userPrompt = `Plan a ${days}-day trip to ${destination} with a budget of $${budget} USD for 2 people total (not per person).
+    const rooms = people <= 2 ? 1 : Math.ceil(people / 2)
+    const userPrompt = `Plan a ${days}-day trip to ${destination} with a budget of $${budget} USD total for ${people} ${people === 1 ? 'person' : 'people'} (not per person). They will need ${rooms} hotel room${rooms > 1 ? 's' : ''}.
 
 Travel details:
 - Travel mode: ${travelMode}
@@ -231,12 +234,23 @@ ${travelMode === 'fly' ? 'For flights: use realistic major airlines, real airpor
 
 Provide exactly ${days} days in the itinerary. Make the hotels, restaurants, and tips genuinely useful and specific to ${destination}. If the total cost exceeds the budget of $${budget}, set isOverBudget to true, calculate budgetDifference as (totalCost - budget), and provide 3 alternative destinations that fit the budget with a similar vibe.`
 
-    const message = await anthropic.messages.create({
-      model: 'claude-opus-4-6',
-      max_tokens: 8000,
-      messages: [{ role: 'user', content: userPrompt }],
-      system: systemPrompt,
-    })
+    const controller = new AbortController()
+    const timeoutId = setTimeout(() => controller.abort(), 90000)
+
+    let message
+    try {
+      message = await anthropic.messages.create(
+        {
+          model: 'claude-sonnet-4-6',
+          max_tokens: 8000,
+          messages: [{ role: 'user', content: userPrompt }],
+          system: systemPrompt,
+        },
+        { signal: controller.signal }
+      )
+    } finally {
+      clearTimeout(timeoutId)
+    }
 
     const content = message.content[0]
     if (content.type !== 'text') throw new Error('Unexpected response type')

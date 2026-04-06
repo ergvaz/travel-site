@@ -1,9 +1,10 @@
 'use client'
 
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useState, lazy, Suspense } from 'react'
 import Link from 'next/link'
 import ForestBackground from '@/components/ForestBackground'
 import Navbar from '@/components/Navbar'
+const Globe3D = lazy(() => import('@/components/Globe3D'))
 
 const DESTINATIONS = ['Kyoto', 'Patagonia', 'Santorini', 'Bali', 'Iceland', 'Morocco', 'Costa Rica', 'Tuscany']
 
@@ -71,36 +72,62 @@ export default function HomePage() {
       <Navbar />
 
       {/* Hero */}
-      <section className="relative min-h-screen flex flex-col items-center justify-center text-center px-6" style={{ zIndex: 10 }}>
-        <div className="transition-all duration-1000" style={{ opacity: visible ? 1 : 0, transform: visible ? 'translateY(0)' : 'translateY(30px)' }}>
+      <section className="relative min-h-screen flex items-center px-6" style={{ zIndex: 10 }}>
+        <div className="max-w-7xl mx-auto w-full flex flex-col lg:flex-row items-center gap-12 lg:gap-0 pt-20 pb-10">
+
+          {/* Left: text */}
           <div
-            className="inline-flex items-center gap-2 text-xs font-semibold uppercase mb-8 px-4 py-2 rounded-full"
-            style={{ color: 'var(--gold)', background: 'rgba(200,168,75,0.08)', border: '1px solid rgba(200,168,75,0.2)', letterSpacing: '0.15em' }}
+            className="flex-1 transition-all duration-1000 text-center lg:text-left"
+            style={{ opacity: visible ? 1 : 0, transform: visible ? 'translateY(0)' : 'translateY(30px)' }}
           >
-            <span className="w-1.5 h-1.5 rounded-full bg-current animate-pulse" />
-            AI-Powered Travel Planning
+            <div
+              className="inline-flex items-center gap-2 text-xs font-semibold uppercase mb-8 px-4 py-2 rounded-full"
+              style={{ color: 'var(--gold)', background: 'rgba(200,168,75,0.08)', border: '1px solid rgba(200,168,75,0.2)', letterSpacing: '0.15em' }}
+            >
+              <span className="w-1.5 h-1.5 rounded-full bg-current animate-pulse" />
+              AI-Powered Travel Planning
+            </div>
+
+            <h1 className="font-bold mb-6 leading-tight" style={{ fontSize: 'clamp(40px, 6vw, 80px)', fontFamily: 'Georgia, serif', textShadow: '0 4px 30px rgba(0,0,0,0.8)', letterSpacing: '-0.02em' }}>
+              Your journey to{' '}
+              <span className="text-gold-gradient block" style={{ minHeight: '1.2em' }}>
+                {DESTINATIONS[destIndex]}
+              </span>
+              starts here.
+            </h1>
+
+            <p className="max-w-lg mb-10 text-lg leading-relaxed mx-auto lg:mx-0" style={{ color: 'var(--fog-light)', textShadow: '0 2px 10px rgba(0,0,0,0.6)' }}>
+              Tell us your budget, destination, and what you love. Our AI plans the entire trip — flights, hotels, day-by-day itinerary, and insider tips.
+            </p>
+
+            <div className="flex flex-col sm:flex-row gap-4 justify-center lg:justify-start items-center">
+              <Link href="/plan" className="btn-gold px-10 py-4 rounded-2xl text-base font-bold" style={{ minWidth: '200px' }}>
+                <span className="flex items-center gap-2 justify-center">
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+                  Plan My Trip
+                </span>
+              </Link>
+              <Link href="/discover" className="btn-ghost px-8 py-4 rounded-2xl text-sm font-medium">Browse Trips</Link>
+            </div>
           </div>
 
-          <h1 className="font-bold mb-6 leading-tight" style={{ fontSize: 'clamp(48px, 8vw, 88px)', fontFamily: 'Georgia, serif', textShadow: '0 4px 30px rgba(0,0,0,0.8)', letterSpacing: '-0.02em' }}>
-            Your journey to{' '}
-            <span className="text-gold-gradient block" style={{ minHeight: '1.2em', transition: 'opacity 300ms ease' }}>
-              {DESTINATIONS[destIndex]}
-            </span>
-            starts here.
-          </h1>
-
-          <p className="max-w-xl mx-auto mb-10 text-lg leading-relaxed" style={{ color: 'var(--fog-light)', textShadow: '0 2px 10px rgba(0,0,0,0.6)' }}>
-            Tell us your budget, destination, and what you love. Our AI plans the entire trip — flights, hotels, day-by-day itinerary, and insider tips.
-          </p>
-
-          <div className="flex flex-col sm:flex-row gap-4 justify-center items-center">
-            <Link href="/plan" className="btn-gold px-10 py-4 rounded-2xl text-base font-bold" style={{ minWidth: '200px' }}>
-              <span className="flex items-center gap-2 justify-center">
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
-                Plan My Trip
-              </span>
-            </Link>
-            <Link href="/discover" className="btn-ghost px-8 py-4 rounded-2xl text-sm font-medium">Browse Trips</Link>
+          {/* Right: 3D globe — desktop only */}
+          <div
+            className="hidden lg:flex flex-1 items-center justify-center transition-all duration-1000"
+            style={{ opacity: visible ? 1 : 0, minHeight: '420px', maxWidth: '520px', width: '100%' }}
+          >
+            <div style={{ width: '100%', height: '480px', position: 'relative' }}>
+              {/* Glow under globe */}
+              <div style={{ position: 'absolute', bottom: '10%', left: '50%', transform: 'translateX(-50%)', width: '60%', height: '60px', background: 'radial-gradient(ellipse, rgba(200,168,75,0.18) 0%, transparent 70%)', pointerEvents: 'none' }} />
+              <Suspense fallback={
+                <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  <div className="w-12 h-12 rounded-full border-2 animate-spin" style={{ borderColor: 'var(--gold) transparent transparent transparent' }} />
+                </div>
+              }>
+                <Globe3D />
+              </Suspense>
+              <p className="text-center text-xs mt-3" style={{ color: 'var(--text-muted)', letterSpacing: '0.1em' }}>DRAG TO EXPLORE</p>
+            </div>
           </div>
         </div>
 
