@@ -234,36 +234,45 @@ ${travelMode === 'fly' ? 'For flights: use realistic major airlines, real airpor
 
 Provide exactly ${days} days in the itinerary. Make the hotels, restaurants, and tips genuinely useful and specific to ${destination}. If the total cost exceeds the budget of $${budget}, set isOverBudget to true, calculate budgetDifference as (totalCost - budget), and provide 3 alternative destinations that fit the budget with a similar vibe.`
 
-    const controller = new AbortController()
-    const timeoutId = setTimeout(() => controller.abort(), 90000)
+    // Stream the response so Vercel never times out waiting for the full completion
+    const encoder = new TextEncoder()
+    let fullText = ''
 
-    let message
-    try {
-      message = await anthropic.messages.create(
-        {
-          model: 'claude-sonnet-4-6',
-          max_tokens: 8000,
-          messages: [{ role: 'user', content: userPrompt }],
-          system: systemPrompt,
-        },
-        { signal: controller.signal }
-      )
-    } finally {
-      clearTimeout(timeoutId)
-    }
+    const stream = new ReadableStream({
+      async start(controller) {
+        try {
+          const anthropicStream = anthropic.messages.stream({
+            model: 'claude-sonnet-4-6',
+            max_tokens: 6000,
+            messages: [{ role: 'user', content: userPrompt }],
+            system: systemPrompt,
+          })
 
-    const content = message.content[0]
-    if (content.type !== 'text') throw new Error('Unexpected response type')
+          for await (const event of anthropicStream) {
+            if (
+              event.type === 'content_block_delta' &&
+              event.delta.type === 'text_delta'
+            ) {
+              fullText += event.delta.text
+              controller.enqueue(encoder.encode(event.delta.text))
+            }
+          }
 
-    let tripData: GeneratedTrip
-    try {
-      const cleaned = content.text.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim()
-      tripData = JSON.parse(cleaned)
-    } catch {
-      throw new Error('Failed to parse trip data')
-    }
+          // Validate JSON after streaming completes
+          const cleaned = fullText.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim()
+          JSON.parse(cleaned) // throws if malformed — caught below
+          controller.close()
+        } catch (err) {
+          const msg = err instanceof Error ? err.message : 'Failed to plan trip'
+          controller.enqueue(encoder.encode(`\n__ERROR__:${msg}`))
+          controller.close()
+        }
+      },
+    })
 
-    return NextResponse.json({ success: true, trip: tripData })
+    return new Response(stream, {
+      headers: { 'Content-Type': 'text/plain; charset=utf-8' },
+    })
   } catch (error) {
     console.error('Plan trip error:', error)
     return NextResponse.json(

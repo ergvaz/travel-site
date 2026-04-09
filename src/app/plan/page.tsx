@@ -71,9 +71,31 @@ function PlanPageInner() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(data),
       })
-      const json = await res.json()
-      if (!json.success) throw new Error(json.error)
-      setTrip(json.trip)
+
+      if (!res.ok) {
+        const json = await res.json().catch(() => ({}))
+        throw new Error((json as { error?: string }).error || 'Failed to plan trip')
+      }
+
+      // Read the streamed response
+      const reader = res.body!.getReader()
+      const decoder = new TextDecoder()
+      let fullText = ''
+
+      while (true) {
+        const { done, value } = await reader.read()
+        if (done) break
+        fullText += decoder.decode(value, { stream: true })
+      }
+
+      if (fullText.includes('__ERROR__:')) {
+        throw new Error(fullText.split('__ERROR__:')[1].trim())
+      }
+
+      const cleaned = fullText.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim()
+      const tripData = JSON.parse(cleaned) as GeneratedTrip
+
+      setTrip(tripData)
       setPhase('result')
       if (!user) {
         localStorage.setItem('wander_planned', '1')
