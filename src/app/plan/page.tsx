@@ -93,7 +93,29 @@ function PlanPageInner() {
       }
 
       const cleaned = fullText.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim()
-      const tripData = JSON.parse(cleaned) as GeneratedTrip
+
+      let tripData: GeneratedTrip
+      try {
+        tripData = JSON.parse(cleaned)
+      } catch {
+        // Attempt to repair truncated JSON
+        let fixed = cleaned
+        let inString = false, escape = false
+        const stack: string[] = []
+        for (const ch of fixed) {
+          if (escape)          { escape = false; continue }
+          if (ch === '\\' && inString) { escape = true; continue }
+          if (ch === '"')      { inString = !inString; continue }
+          if (inString)        continue
+          if (ch === '{')      stack.push('}')
+          else if (ch === '[') stack.push(']')
+          else if (ch === '}' || ch === ']') stack.pop()
+        }
+        if (inString) fixed += '"'
+        fixed = fixed.replace(/,\s*$/, '')
+        fixed += stack.reverse().join('')
+        tripData = JSON.parse(fixed)
+      }
 
       setTrip(tripData)
       setPhase('result')
