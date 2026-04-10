@@ -37,12 +37,12 @@ async function buildGlobeTexture(): Promise<THREE.CanvasTexture> {
   const ctx = canvas.getContext('2d')!
 
   // Ocean
-  ctx.fillStyle = '#060e06'
+  ctx.fillStyle = '#050c08'
   ctx.fillRect(0, 0, W, H)
 
   // Lat/lng grid
-  ctx.strokeStyle = 'rgba(200,168,75,0.06)'
-  ctx.lineWidth = 0.8
+  ctx.strokeStyle = 'rgba(200,168,75,0.07)'
+  ctx.lineWidth = 0.7
   for (let lng = -180; lng <= 180; lng += 30) {
     const x = (lng + 180) / 360 * W
     ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, H); ctx.stroke()
@@ -57,9 +57,9 @@ async function buildGlobeTexture(): Promise<THREE.CanvasTexture> {
 
   const land = topojson.feature(worldData, worldData.objects.land as topojson.GeometryCollection)
 
-  ctx.fillStyle = '#1a2e16'
-  ctx.strokeStyle = 'rgba(200,168,75,0.25)'
-  ctx.lineWidth = 1.2
+  ctx.fillStyle = '#264d1e'
+  ctx.strokeStyle = 'rgba(200,168,75,0.7)'
+  ctx.lineWidth = 1.8
 
   const project = (coord: number[]) => [
     (coord[0] + 180) / 360 * W,

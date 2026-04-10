@@ -113,29 +113,40 @@ export default function TripResult({ trip, formData, onSave, onReset, saving, sa
         </div>
       </div>
 
-      {/* Over-budget alternatives */}
-      {isOver && trip.alternativeDestinations && trip.alternativeDestinations.length > 0 && (
-        <div className="over-budget-banner p-5">
-          <div className="flex items-start gap-3 mb-4">
-            <div className="text-2xl">⚡</div>
+      {/* Alternative destinations — always shown */}
+      {trip.alternativeDestinations && trip.alternativeDestinations.length > 0 && (
+        <div className="forest-card p-5">
+          <div className="flex items-center gap-2 mb-4">
+            <span className="text-xl">{isOver ? '⚡' : '🌍'}</span>
             <div>
-              <h3 className="font-semibold" style={{ color: '#fb923c' }}>Over budget for {trip.destination}</h3>
-              <p className="text-sm mt-0.5" style={{ color: 'var(--text-secondary)' }}>
-                Similar destinations that fit your ${formData.budget?.toLocaleString()} budget:
-              </p>
+              <h3 className="font-semibold" style={{ color: isOver ? '#fb923c' : 'var(--gold)' }}>
+                {isOver ? `Over budget — similar destinations within $${formData.budget?.toLocaleString()}` : 'Similar destinations to explore'}
+              </h3>
+              <p className="text-xs mt-0.5" style={{ color: 'var(--text-muted)' }}>Click any to plan a full trip there</p>
             </div>
           </div>
           <div className="grid sm:grid-cols-3 gap-3">
             {trip.alternativeDestinations.map((alt, i) => (
-              <div key={i} className="alt-dest-card p-4" onClick={() => window.location.href = `/plan?dest=${encodeURIComponent(alt.destination)}&budget=${formData.budget}&days=${formData.days}`}>
-                <div className="font-semibold mb-1">{alt.destination}</div>
-                <div className="text-xs mb-2" style={{ color: 'var(--text-muted)' }}>{alt.country} · {alt.vibe}</div>
+              <button
+                key={i}
+                type="button"
+                className="text-left p-4 rounded-xl transition-all"
+                style={{ background: 'rgba(200,168,75,0.04)', border: '1px solid rgba(200,168,75,0.12)' }}
+                onMouseEnter={e => (e.currentTarget.style.borderColor = 'rgba(200,168,75,0.4)')}
+                onMouseLeave={e => (e.currentTarget.style.borderColor = 'rgba(200,168,75,0.12)')}
+                onClick={() => window.location.href = `/plan?destination=${encodeURIComponent(alt.destination)}`}
+              >
+                <div className="font-semibold mb-0.5">{alt.destination}</div>
+                <div className="text-xs mb-1" style={{ color: 'var(--text-muted)' }}>{alt.country} · {alt.vibe}</div>
                 <div className="text-xs mb-2" style={{ color: 'var(--text-secondary)' }}>{alt.reason}</div>
                 <div className="text-lg font-bold" style={{ color: 'var(--gold)' }}>${alt.estimatedCost?.toLocaleString()}</div>
-                <div className="text-xs mt-1" style={{ color: '#4ade80' }}>
-                  Saves ${((formData.budget || 0) - alt.estimatedCost)?.toLocaleString()}
-                </div>
-              </div>
+                {alt.estimatedCost < (formData.budget || 0) && (
+                  <div className="text-xs mt-0.5" style={{ color: '#4ade80' }}>
+                    ~${((formData.budget || 0) - alt.estimatedCost).toLocaleString()} cheaper
+                  </div>
+                )}
+                <div className="text-xs mt-2 font-semibold" style={{ color: 'var(--gold)' }}>Plan this trip →</div>
+              </button>
             ))}
           </div>
         </div>
@@ -213,6 +224,10 @@ function OverviewTab({ trip }: { trip: GeneratedTrip }) {
   )
 }
 
+function mapsUrl(location: string, destination: string) {
+  return `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(location + ', ' + destination)}`
+}
+
 function ItineraryTab({ trip, expandedDay, setExpandedDay }: { trip: GeneratedTrip; expandedDay: number | null; setExpandedDay: (n: number | null) => void }) {
   return (
     <div className="space-y-3">
@@ -239,7 +254,11 @@ function ItineraryTab({ trip, expandedDay, setExpandedDay }: { trip: GeneratedTr
           </button>
           {expandedDay === i && (
             <div className="px-4 pb-4 space-y-3">
-              {[{ time: '🌅', label: 'Morning', data: day.morning }, { time: '☀️', label: 'Afternoon', data: day.afternoon }, { time: '🌙', label: 'Evening', data: day.evening }].map(({ time, label, data }) => (
+              {[
+                { time: '🌅', label: 'Morning',   data: day.morning },
+                { time: '☀️', label: 'Afternoon', data: day.afternoon },
+                { time: '🌙', label: 'Evening',   data: day.evening },
+              ].map(({ time, label, data }) => (
                 <div key={label} className="p-3 rounded-xl" style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(200,168,75,0.08)' }}>
                   <div className="flex items-center gap-2 mb-1">
                     <span>{time}</span>
@@ -249,8 +268,20 @@ function ItineraryTab({ trip, expandedDay, setExpandedDay }: { trip: GeneratedTr
                   </div>
                   <div className="font-medium text-sm mb-1">{data.title}</div>
                   <div className="text-xs leading-relaxed mb-1" style={{ color: 'var(--text-secondary)' }}>{data.description}</div>
-                  {data.location && <div className="text-xs" style={{ color: 'var(--text-muted)' }}>📍 {data.location}</div>}
-                  {data.tips && <div className="text-xs mt-1 italic" style={{ color: 'var(--gold)' }}>💡 {data.tips}</div>}
+                  {data.location && (
+                    <a
+                      href={mapsUrl(data.location, trip.destination)}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex items-center gap-1 text-xs font-semibold mt-1"
+                      style={{ color: '#c8a84b', textDecoration: 'underline', textUnderlineOffset: '3px' }}
+                    >
+                      📍 {data.location}
+                      {data.address && <span className="font-normal" style={{ color: 'var(--text-muted)' }}> · {data.address}</span>}
+                      <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><path d="M18 13v6a2 2 0 01-2 2H5a2 2 0 01-2-2V8a2 2 0 012-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
+                    </a>
+                  )}
+                  {data.tips && <div className="text-xs mt-1.5 italic" style={{ color: 'var(--gold)' }}>💡 {data.tips}</div>}
                 </div>
               ))}
               <div className="text-xs px-1" style={{ color: 'var(--text-muted)' }}>🏨 Stay: {day.accommodation}</div>

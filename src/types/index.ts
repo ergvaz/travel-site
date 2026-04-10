@@ -1,5 +1,6 @@
 export interface TripFormData {
   destination: string
+  origin: string
   budget: number
   startDate?: string
   days: number
@@ -67,6 +68,7 @@ export interface Activity {
   title: string
   description: string
   location: string
+  address?: string
   tips: string
   cost?: string
   duration?: string

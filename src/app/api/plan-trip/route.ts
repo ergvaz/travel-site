@@ -100,7 +100,7 @@ export async function POST(req: NextRequest) {
   try {
     const formData: TripFormData = await req.json()
     const {
-      destination, budget, days, people = 2,
+      destination, origin = '', budget, days, people = 2,
       travelMode, startingAddress, preferences, specialRequests, startDate,
     } = formData
 
@@ -119,15 +119,16 @@ export async function POST(req: NextRequest) {
     const systemPrompt = `You are an expert travel planner. Respond ONLY with valid, complete JSON — no markdown, no explanation, no trailing text.`
 
     const userPrompt = `Plan a ${days}-day trip to ${destination}.
+Origin: ${travelMode === 'drive' ? (startingAddress || origin) : origin}
 Budget: $${budget} total for ${people} person(s) / ${rooms} room(s).
-Travel: ${travelMode === 'drive' ? `driving from ${startingAddress}` : 'flying'}
+Travel: ${travelMode === 'drive' ? 'driving' : `flying from ${origin}`}
 Month: ${travelMonth}${startDate ? ` (start ${startDate})` : ''}
 Preferences: ${preferences.join(', ') || 'general sightseeing'}
 ${specialRequests ? `Special requests: ${specialRequests}` : ''}
 ${research ? `Research:\n${research}` : ''}
 ${places ? `Places:\n${places}` : ''}
 
-Return ONLY this JSON (be concise — keep descriptions under 20 words each):
+Return ONLY this JSON (keep descriptions under 20 words each):
 {
   "title": "string",
   "destination": "string",
@@ -141,7 +142,7 @@ Return ONLY this JSON (be concise — keep descriptions under 20 words each):
   "flights": [{"airline":"string","flightNumber":"string","departure":"string","arrival":"string","departureTime":"string","arrivalTime":"string","duration":"string","stops":number,"price":number,"bookingUrl":"string"}],
   "hotels": [{"name":"string","neighborhood":"string","stars":number,"pricePerNight":number,"totalPrice":number,"description":"string","rating":number,"bookingUrl":"string","highlights":["string"]}],
   "restaurants": [{"name":"string","cuisine":"string","priceRange":"$|$$|$$$|$$$$","rating":number,"description":"string","mustTry":"string","bestFor":"string"}],
-  "itinerary": [{"day":number,"theme":"string","morning":{"title":"string","description":"string","cost":"string"},"afternoon":{"title":"string","description":"string","cost":"string"},"evening":{"title":"string","description":"string","cost":"string"},"estimatedCost":number}],
+  "itinerary": [{"day":number,"theme":"string","morning":{"title":"string","description":"string","location":"string","address":"string","cost":"string"},"afternoon":{"title":"string","description":"string","location":"string","address":"string","cost":"string"},"evening":{"title":"string","description":"string","location":"string","address":"string","cost":"string"},"estimatedCost":number}],
   "tips": [{"category":"string","title":"string","content":"string"}],
   "alternativeDestinations": [{"destination":"string","country":"string","reason":"string","estimatedCost":number,"vibe":"string","highlights":["string"]}],
   "isOverBudget": boolean,
@@ -150,10 +151,14 @@ Return ONLY this JSON (be concise — keep descriptions under 20 words each):
 
 Rules:
 - Exactly ${days} days in itinerary
-- 2 flights, 2 hotels, 5 restaurants, 6 tips, 3 alternatives
-- flights bookingUrl: real Google Flights deep link
-- hotels bookingUrl: real Booking.com search URL
-- If totalEstimatedCost > ${budget}: isOverBudget=true, budgetDifference=totalEstimatedCost-${budget}
+- 2 flights, 2 hotels, 5 restaurants, 6 tips, ALWAYS 3 alternative destinations (similar vibe, 20-40% cheaper)
+- flights bookingUrl: real Google Flights deep link from ${origin} to ${destination}
+- hotels bookingUrl: real Booking.com search URL for ${destination}
+- For each activity: location = place name, address = full street address
+- PRICE ACCURACY: Add 20% buffer to all flight and hotel prices — always overestimate, never underestimate
+- ACCOMMODATION: Always include at least 1 budget option (hostel or guesthouse) alongside regular hotels
+- FOOD: Mention grocery stores / markets as a budget food option in at least 1 restaurant entry or tip
+- If totalEstimatedCost > ${budget}: isOverBudget=true, budgetDifference=totalEstimatedCost-${budget}, else isOverBudget=false
 - Keep ALL string values short. Do not exceed the JSON structure above.`
 
     const encoder = new TextEncoder()

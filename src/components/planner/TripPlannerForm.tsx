@@ -2,24 +2,25 @@
 
 import { useState } from 'react'
 import CalendarPicker from '@/components/ui/CalendarPicker'
+import LocationAutocomplete from '@/components/ui/LocationAutocomplete'
 import type { TripFormData } from '@/types'
 
 const PREFERENCES = [
-  { id: 'food', label: 'Food & Dining', icon: '🍽' },
-  { id: 'views', label: 'Scenic Views', icon: '🏔' },
-  { id: 'history', label: 'History & Culture', icon: '🏛' },
-  { id: 'nature', label: 'Nature & Hiking', icon: '🌿' },
-  { id: 'nightlife', label: 'Nightlife', icon: '🌙' },
-  { id: 'shopping', label: 'Shopping', icon: '🛍' },
-  { id: 'adventure', label: 'Adventure Sports', icon: '🏄' },
-  { id: 'relaxation', label: 'Relaxation & Spa', icon: '🛁' },
-  { id: 'art', label: 'Art & Museums', icon: '🎨' },
-  { id: 'local', label: 'Local Experiences', icon: '🤝' },
-  { id: 'pet_friendly', label: 'Pet Friendly', icon: '🐾' },
-  { id: 'family', label: 'Family Friendly', icon: '👨‍👩‍👧' },
-  { id: 'romantic', label: 'Romantic', icon: '💑' },
-  { id: 'budget', label: 'Budget Conscious', icon: '💰' },
-  { id: 'luxury', label: 'Luxury', icon: '✨' },
+  { id: 'food',        label: 'Food & Dining',       icon: '🍽' },
+  { id: 'views',       label: 'Scenic Views',         icon: '🏔' },
+  { id: 'history',     label: 'History & Culture',    icon: '🏛' },
+  { id: 'nature',      label: 'Nature & Hiking',      icon: '🌿' },
+  { id: 'nightlife',   label: 'Nightlife',            icon: '🌙' },
+  { id: 'shopping',    label: 'Shopping',             icon: '🛍' },
+  { id: 'adventure',   label: 'Adventure Sports',     icon: '🏄' },
+  { id: 'relaxation',  label: 'Relaxation & Spa',     icon: '🛁' },
+  { id: 'art',         label: 'Art & Museums',        icon: '🎨' },
+  { id: 'local',       label: 'Local Experiences',    icon: '🤝' },
+  { id: 'pet_friendly',label: 'Pet Friendly',         icon: '🐾' },
+  { id: 'family',      label: 'Family Friendly',      icon: '👨‍👩‍👧' },
+  { id: 'romantic',    label: 'Romantic',             icon: '💑' },
+  { id: 'budget',      label: 'Budget Conscious',     icon: '💰' },
+  { id: 'luxury',      label: 'Luxury',               icon: '✨' },
 ]
 
 const BUDGET_PRESETS = [1500, 3000, 5000, 8000, 15000]
@@ -32,6 +33,7 @@ interface Props {
 export default function TripPlannerForm({ onSubmit, prefillDestination }: Props) {
   const [form, setForm] = useState<TripFormData>({
     destination: prefillDestination || '',
+    origin: '',
     budget: 5000,
     days: 7,
     people: 2,
@@ -50,28 +52,39 @@ export default function TripPlannerForm({ onSubmit, prefillDestination }: Props)
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
-    if (!form.destination.trim()) return
+    if (!form.destination.trim() || !form.origin.trim()) return
     onSubmit(form)
   }
 
   const budgetPerPerson = Math.round(form.budget / form.people)
-  const budgetPerDay = Math.round(form.budget / form.days)
+  const budgetPerDay    = Math.round(form.budget / form.days)
 
   return (
     <form onSubmit={handleSubmit} className="forest-card p-8 space-y-8">
+
+      {/* Origin */}
+      <div>
+        <label className="block text-sm font-semibold mb-2" style={{ color: 'var(--gold)' }}>
+          Where are you coming from? *
+        </label>
+        <LocationAutocomplete
+          required
+          placeholder="e.g. New York, NY · Chicago, IL · Los Angeles, CA"
+          value={form.origin}
+          onChange={v => setForm(f => ({ ...f, origin: v }))}
+        />
+      </div>
 
       {/* Destination */}
       <div>
         <label className="block text-sm font-semibold mb-2" style={{ color: 'var(--gold)' }}>
           Where do you want to go? *
         </label>
-        <input
-          type="text"
+        <LocationAutocomplete
           required
-          className="forest-input w-full px-4 py-3 rounded-xl text-base"
           placeholder="e.g. Tokyo, Japan · Tuscany, Italy · Patagonia"
           value={form.destination}
-          onChange={e => setForm(f => ({ ...f, destination: e.target.value }))}
+          onChange={v => setForm(f => ({ ...f, destination: v }))}
         />
       </div>
 
@@ -79,11 +92,9 @@ export default function TripPlannerForm({ onSubmit, prefillDestination }: Props)
       <div>
         <div className="flex items-center justify-between mb-3">
           <label className="text-sm font-semibold" style={{ color: 'var(--gold)' }}>Total Budget (USD)</label>
-          <div className="flex items-center gap-1">
-            <span className="text-2xl font-bold" style={{ color: 'var(--gold)', fontFamily: 'Georgia, serif' }}>
-              ${form.budget.toLocaleString()}
-            </span>
-          </div>
+          <span className="text-2xl font-bold" style={{ color: 'var(--gold)', fontFamily: 'Georgia, serif' }}>
+            ${form.budget.toLocaleString()}
+          </span>
         </div>
         <div className="relative mb-3">
           <input
@@ -100,7 +111,6 @@ export default function TripPlannerForm({ onSubmit, prefillDestination }: Props)
             }}
           />
         </div>
-        {/* Preset buttons */}
         <div className="flex gap-2 flex-wrap">
           {BUDGET_PRESETS.map(b => (
             <button
@@ -124,7 +134,7 @@ export default function TripPlannerForm({ onSubmit, prefillDestination }: Props)
         </div>
       </div>
 
-      {/* Days + People row */}
+      {/* Days + People */}
       <div className="grid grid-cols-2 gap-4">
         <div>
           <label className="block text-sm font-semibold mb-2" style={{ color: 'var(--gold)' }}>Number of Days</label>
@@ -179,17 +189,6 @@ export default function TripPlannerForm({ onSubmit, prefillDestination }: Props)
           ))}
         </div>
       </div>
-
-      {/* Starting address (driving only) */}
-      {form.travelMode === 'drive' && (
-        <div>
-          <label className="block text-sm font-semibold mb-2" style={{ color: 'var(--gold)' }}>Starting Address</label>
-          <input type="text" required className="forest-input w-full px-4 py-3 rounded-xl text-base"
-            placeholder="e.g. 123 Main St, New York, NY"
-            value={form.startingAddress || ''}
-            onChange={e => setForm(f => ({ ...f, startingAddress: e.target.value }))} />
-        </div>
-      )}
 
       {/* Preferences */}
       <div>
